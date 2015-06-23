@@ -112,7 +112,7 @@ transport_stocks = [ 75, 93, 135, 139, 257, 300, 357 ];
 
 %***************************************************************%
 % Put the stock pick here
-stock_pick = auto_stocks;
+stock_pick = oil_stocks;
 start_time =  2;
 total_time =  numel(sp(1).price); %1000 "= numel(sp(1).price)" for all days
 end_time = start_time + total_time - 2;
@@ -180,6 +180,39 @@ while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(trace_min_iter -
     toc
 end
 
+% Note: this (commented out) version of the iterative trace minimization
+% only optimizes over diag(D), instead of over diag(D) AND Sigma_hat, as
+% above. The results are very similar (nearly identical)
+
+% epsilon = 5e-3;
+% W = inv(Sigma+epsilon*eye(n,n));
+% W_old = ones(n,n);
+% D_old = ones(n,1);
+% D = zeros(n,1);
+% trace_min_old = 0;
+% trace_min_iter = 1;
+% toc
+% 
+% % Trace iterative v2
+% while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(trace_min_iter - trace_min_old) > 1e-2 )
+%     W_old = W;
+%     D_old = D;
+%     trace_min_old = trace_min_iter;
+%     
+%     % Use CVX to optimize the trace, with variables Sigma_h (n x n matrix)
+%     % and D (n x 1 diagonal matrix)
+%     cvx_begin
+%         variable D(n)
+%         minimize trace( W*(Sigma - diag(D)) )
+%         subject to
+%             %This is equivalent to D>=0, as D is represented as a vector
+%             diag(D) == semidefinite(n);
+%             Sigma - diag(D) == semidefinite(n);
+%     cvx_end
+%     trace_min_iter =  trace(W*Sigma_h);
+%     W = inv(Sigma - diag(D) + epsilon*eye(n,n));
+%     toc
+% end
 
 W = inv(Sigma+epsilon*eye(n,n));
 W_old = ones(n,n);
