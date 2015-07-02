@@ -22,7 +22,7 @@ tech_stocks = [2 , 7, 8, 11, 21, 23,  24, 63, 91, 92, 96, 103, 124, 172, 176,...
     180, 183, 190, 201, 211, 214, 217, 218, 227, 236, 240, 241, 243, 258, 266, 283,... 
     299 , 305,  320, 333, 335,339, 345, 352, 366, 368,  369, 382, ];
 
-% 34 Healthcare stocks
+% 35 Healthcare stocks
 healthcare_stocks = [3,4 , 6,17,  22,25, 43, 47, 48,57, 59, 65, 72, 73, 76, 105, ...
     117, 130, 148, 164, 210, 212, 228, 230, 237, 246, 276, 280, 294,...
     326, 332, 341, 355, 360, 382] ;
@@ -110,39 +110,58 @@ transport_stocks = [ 75, 93, 135, 139, 257, 300, 357 ];
 % end
 %***************************************************************%
 
+% %***************************************************************%
+% % Put the stock pick here
+% stock_pick = 201:300;
+% start_time =  2;%1926;%2;
+% total_time =  110;%numel(sp(1).price); %1000 "= numel(sp(1).price)" for all days
+% end_time = start_time + total_time - 2;
+% returns = zeros(numel(stock_pick),total_time-1);
+% k = 1;
+% for i = stock_pick
+%     for j = start_time:end_time
+%         returns(k,j) = (sp(i).price(j) - sp(i).price(j-1))/sp(i).price(j-1); 
+%     end    
+%     k = k+1;
+% end
+% %***************************************************************%
+
 %***************************************************************%
 % Put the stock pick here
-stock_pick = oil_stocks;
-start_time =  2;
-total_time =  numel(sp(1).price); %1000 "= numel(sp(1).price)" for all days
-end_time = start_time + total_time - 2;
-returns = zeros(numel(stock_pick),total_time-1);
+stock_pick = 201:260;
+time = 2:504;%2:1:3926;%-10;% 2:numel(sp(1).date) ; %2:10:3926;
+returns = zeros(numel(stock_pick),numel(time));
 k = 1;
+
 for i = stock_pick
-    for j = start_time:end_time
-        returns(k,j) = (sp(i).price(j) - sp(i).price(j-1))/sp(i).price(j-1); 
+    inner_var = 1;
+    for j = time
+        returns(k,inner_var) = (sp(i).price(j) - sp(i).price(j-1))/sp(i).price(j-1); 
+        inner_var = inner_var + 1;
     end    
     k = k+1;
 end
 %***************************************************************%
 
 
+% Take mean of existing above data
 %***************************************************************%
-% % Put the stock pick here
-% stock_pick = energy_stocks;
-% start_time =  2;
-% total_time =  numel(sp(1).price); %1000 "= numel(sp(1).price)" for all days
-% end_time = start_time + total_time - 2;
-% returns = zeros(numel(stock_pick),total_time-1);
+% avg_num = 10;
+% avg_time = floor(size(returns,2)/avg_num);
+% returns2 = zeros(numel(stock_pick),avg_time);%numel(time));
 % k = 1;
+% 
 % for i = stock_pick
-%     for j = start_time:end_time
-% %         returns(k,j) = log(sp(i).price(j))  - log(sp(i).price(j-1));
-%         returns(k,j) = (sp(i).price(j)/sp(i).price(j-1)) - 1;
-%     end    
+%     inner_var = 1;
+%     for j = 1:avg_num:numel(time)-avg_num;
+%         returns2( k ,inner_var) = mean( returns(k,j:j+avg_num-1));
+%         inner_var = inner_var + 1;
+%     end
 %     k = k+1;
 % end
+% returns = returns2;
 %***************************************************************%
+
 
 returns = log(1+returns);
 Sigma = returns*returns';
@@ -158,27 +177,27 @@ trace_min_old = 0;
 trace_min_iter = 1;
 toc
 
-% Trace iterative
-while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(trace_min_iter - trace_min_old) > 1e-2 )
-    W_old = W;
-    D_old = D;
-    trace_min_old = trace_min_iter;
-    
-    % Use CVX to optimize the trace, with variables Sigma_h (n x n matrix)
-    % and D (n x 1 diagonal matrix)
-    cvx_begin
-        variables D(n) Sigma_h(n,n)
-        minimize trace(W*Sigma_h)
-        subject to
-            %This is equivalent to D>=0, as D is represented as a vector
-            diag(D) == semidefinite(n);
-            Sigma_h == semidefinite(n);
-            Sigma == Sigma_h + diag(D);
-    cvx_end
-    trace_min_iter =  trace(W*Sigma_h);
-    W = inv(Sigma - diag(D) + epsilon*eye(n,n));
-    toc
-end
+% % Trace iterative
+% while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(trace_min_iter - trace_min_old) > 1e-2 )
+%     W_old = W;
+%     D_old = D;
+%     trace_min_old = trace_min_iter;
+%     
+%     % Use CVX to optimize the trace, with variables Sigma_h (n x n matrix)
+%     % and D (n x 1 diagonal matrix)
+%     cvx_begin
+%         variables D(n) Sigma_h(n,n)
+%         minimize trace(W*Sigma_h)
+%         subject to
+%             %This is equivalent to D>=0, as D is represented as a vector
+%             diag(D) == semidefinite(n);
+%             Sigma_h == semidefinite(n);
+%             Sigma == Sigma_h + diag(D);
+%     cvx_end
+%     trace_min_iter =  trace(W*Sigma_h);
+%     W = inv(Sigma - diag(D) + epsilon*eye(n,n));
+%     toc
+% end
 
 % Note: this (commented out) version of the iterative trace minimization
 % only optimizes over diag(D), instead of over diag(D) AND Sigma_hat, as
@@ -193,26 +212,27 @@ end
 % trace_min_iter = 1;
 % toc
 % 
-% % Trace iterative v2
-% while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(trace_min_iter - trace_min_old) > 1e-2 )
-%     W_old = W;
-%     D_old = D;
-%     trace_min_old = trace_min_iter;
-%     
-%     % Use CVX to optimize the trace, with variables Sigma_h (n x n matrix)
-%     % and D (n x 1 diagonal matrix)
-%     cvx_begin
-%         variable D(n)
-%         minimize trace( W*(Sigma - diag(D)) )
-%         subject to
-%             %This is equivalent to D>=0, as D is represented as a vector
-%             diag(D) == semidefinite(n);
-%             Sigma - diag(D) == semidefinite(n);
-%     cvx_end
-%     trace_min_iter =  trace(W*Sigma_h);
-%     W = inv(Sigma - diag(D) + epsilon*eye(n,n));
-%     toc
-% end
+% Trace iterative v2
+while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(trace_min_iter - trace_min_old) > 1e-2 )
+    W_old = W;
+    D_old = D;
+    trace_min_old = trace_min_iter;
+    
+    % Use CVX to optimize the trace, with variables Sigma_h (n x n matrix)
+    % and D (n x 1 diagonal matrix)
+    cvx_begin
+        variable D(n)
+        minimize trace( W*(Sigma - diag(D)) )
+        subject to
+            %This is equivalent to D>=0, as D is represented as a vector
+            diag(D) == semidefinite(n);
+            Sigma - diag(D) == semidefinite(n);
+    cvx_end
+    trace_min_iter =  trace(W*(Sigma - diag(D)));
+    W = inv(Sigma - diag(D) + epsilon*eye(n,n));
+    toc
+end
+
 
 W = inv(Sigma+epsilon*eye(n,n));
 W_old = ones(n,n);
@@ -222,6 +242,26 @@ nuc_min_old = 0;
 nuc_min_iter = 1;
 
 
+% %Nuclear norm iterative
+% while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(nuc_min_iter - nuc_min_old) > 1e-2 )
+%     W_old = W;
+%     D_old = D;
+%     nuc_min_old = nuc_min_iter;
+%     % Use CVX to optimize the trace, with variables Sigma_h (n x n matrix)
+%     % and D (n x 1 diagonal matrix)
+%     cvx_begin
+%         variables Sigma_hat(m,n) Y(m,m) Z(n,n) D(n)
+%         minimize trace(Y)/2 + trace(Z)/2
+%         subject to
+%             [Y W*Sigma_hat; (W*Sigma_hat)' Z] == semidefinite(n+m);   
+%             Sigma == Sigma_hat + diag(D);
+%             Sigma_hat == semidefinite(n);
+%             diag(D) == semidefinite(n);
+%     cvx_end
+%     nuc_min_iter = trace(Y)/2 + trace(Z)/2;
+%     W = inv(Sigma - diag(D) + epsilon*eye(n,n));
+% end
+
 %Nuclear norm iterative
 while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(nuc_min_iter - nuc_min_old) > 1e-2 )
     W_old = W;
@@ -230,12 +270,11 @@ while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(nuc_min_iter - n
     % Use CVX to optimize the trace, with variables Sigma_h (n x n matrix)
     % and D (n x 1 diagonal matrix)
     cvx_begin
-        variables Sigma_hat(m,n) Y(m,m) Z(n,n) D(n)
+        variables Y(m,m) Z(n,n) D(n)
         minimize trace(Y)/2 + trace(Z)/2
         subject to
-            [Y W*Sigma_hat; (W*Sigma_hat)' Z] == semidefinite(n+m);   
-            Sigma == Sigma_hat + diag(D);
-            Sigma_hat == semidefinite(n);
+            [Y W*(Sigma - diag(D)); (W*(Sigma - diag(D)))' Z] == semidefinite(n+m);   
+            Sigma - diag(D) ==  semidefinite(n);
             diag(D) == semidefinite(n);
     cvx_end
     nuc_min_iter = trace(Y)/2 + trace(Z)/2;
@@ -243,35 +282,57 @@ while ( norm(W_old - W) > 1e-2 && norm(D_old - D) > 1e-2 && abs(nuc_min_iter - n
 end
 
 
+% % The first and only weight is (Sigma)^-1
+% W = inv(Sigma);
+% %Trace 
+% cvx_begin
+%     variables D(n) Sigma_h2(n,n)
+%     minimize trace(W*(Sigma_h2))
+%     subject to
+%         diag(D) == semidefinite(n);
+%         Sigma_h2 == semidefinite(n);
+%         Sigma == Sigma_h2 + diag(D);
+% cvx_end
+% trace_min = trace(W*Sigma_h2);
+
 % The first and only weight is (Sigma)^-1
 W = inv(Sigma);
 %Trace 
 cvx_begin
-    variables D(n) Sigma_h(n,n)
-    minimize trace(W*(Sigma_h))
+    variables D(n)
+    minimize trace(W*(Sigma - diag(D)))
     subject to
         diag(D) == semidefinite(n);
-        Sigma_h == semidefinite(n);
-        Sigma == Sigma_h + diag(D);
+        Sigma - diag(D) == semidefinite(n);
 cvx_end
-trace_min = trace(W*Sigma_h);
+trace_min = trace(W*(Sigma-diag(D)));
 
 
 % 
-% Solve the convex optimization problem in CVX
+% % Solve the convex optimization problem in CVX
+% % Nuclear norm
+% cvx_begin
+%     variables Sigma_hat(m,n) Y(m,m) Z(n,n) D(n)
+%     minimize trace(Y)/2 + trace(Z)/2
+%     subject to
+%         [Y W*Sigma_hat; (W*Sigma_hat)' Z] == semidefinite(n+m);   
+%         Sigma == Sigma_hat + diag(D);
+%         Sigma_hat == semidefinite(n);
+%         diag(D) == semidefinite(n);
+% cvx_end
+% nuc_min = trace(Y)/2 + trace(Z)/2;
+
+
 % Nuclear norm
 cvx_begin
-    variables Sigma_hat(m,n) Y(m,m) Z(n,n) D(n)
+    variables Y(m,m) Z(n,n) D(n)
     minimize trace(Y)/2 + trace(Z)/2
     subject to
-        [Y W*Sigma_hat; (W*Sigma_hat)' Z] == semidefinite(n+m);   
-        Sigma == Sigma_hat + diag(D);
-        Sigma_hat == semidefinite(n);
+        [Y W*(Sigma - diag(D)); (W*(Sigma - diag(D)))' Z] == semidefinite(n+m);   
+        Sigma - diag(D) ==  semidefinite(n);
         diag(D) == semidefinite(n);
 cvx_end
 nuc_min = trace(Y)/2 + trace(Z)/2;
 
+
 toc
-% % 
-% % % stocks 100-299: 168.2668
-% % toc
